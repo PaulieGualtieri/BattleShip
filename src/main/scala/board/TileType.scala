@@ -18,4 +18,7 @@ case object Submarine extends TileType {
 case object Destroyer extends TileType {
   override val size: Int = 2
 }
+case object WaterTile extends TileType {
+  override val size: Int = 0
+}
 
