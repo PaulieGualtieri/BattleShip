@@ -4,9 +4,26 @@ import scala.annotation.tailrec
 
 object BoardFactory {
 
+  private val shipTotalSize = Carrier.size + BattleShip.size + Cruiser.size + Submarine.size + Destroyer.size
+
+  private def getWaterTiles(ships: Map[(Char, Char), Tile]): Map[(Char, Char), Tile] = {
+    val allTiles = for {
+      n <- 0 to 9
+      c <- 'A' to 'J'
+    } yield ((('0' + n).asInstanceOf[Char], c), new Tile(WaterTile))
+
+    val asMap = allTiles.toMap
+    asMap.view.filterKeys(k => !ships.contains(k)).toMap
+  }
+
+  def createTiles(): Map[(Char, Char), Tile] = {
+    val shipTiles = getShipTiles
+    shipTiles ++ getWaterTiles(shipTiles)
+
+  }
 
   @tailrec
-  def createTiles(): Map[(Char, Char), Tile] = {
+  private def getShipTiles: Map[(Char, Char), Tile] = {
     println("Provide starting point for a Carrier(5 tiles) and the direction(left,right,up,down)")
     val carrier = getShip(Carrier)
     println("Provide starting point for a BattleShip(4 tiles) and the direction(left,right,up,down)")
@@ -24,12 +41,12 @@ object BoardFactory {
       d <- submarine
       e <- destroyer
     } yield a ++ b ++ c ++ d ++ e
-    if (result.isEmpty) {
+
+    if (result.isEmpty || shipTotalSize != result.get.size) {
       println("Some data provided by you was incorrect, try again")
-      createTiles()
+      getShipTiles
     }
     else result.get
-
   }
 
   private def getCoordinates(row: String, column: String): Option[(Char, Char)] =
@@ -42,14 +59,14 @@ object BoardFactory {
 
   private def validateCoordsAreInBound(coordinates: Option[(Char, Char)]) = {
     coordinates
-      .filter(t => t._1 >= 'A' && t._1 <= 'J')
-      .filter(t => t._2 >= '0' && t._2 <= '9')
+      .filter(t => t._1 >= '0' && t._1 <= '9')
+      .filter(t => t._2 >= 'A' && t._2 <= 'J')
   }
 
   private def getShipMap(maybeCoord: Option[(Char, Char)], direction: String, shipType: TileType): Option[Map[(Char, Char), Tile]] = {
     val coordDifference = getCoordDifference(direction)
-    if(coordDifference == null) None
-    val sequence = (1 until shipType.size)
+    if (coordDifference == null) None
+    val sequence = (1 to shipType.size)
       .map(i => maybeCoord.map(t => ((t._1 + (i * coordDifference._1)).asInstanceOf[Char], (t._2 + (i * coordDifference._2)).asInstanceOf[Char])))
       .map(validateCoordsAreInBound)
       .map(o => o.flatMap(t => Some(t -> new Tile(shipType))))
@@ -60,9 +77,9 @@ object BoardFactory {
   }
 
   private def getCoordDifference(direction: String) = {
-    direction match {
-      case "UP" => (1, 0)
-      case "DOWN" => (-1, 0)
+    direction.toUpperCase match {
+      case "UP" => (-1, 0)
+      case "DOWN" => (1, 0)
       case "LEFT" => (-1, 0)
       case "RIGHT" => (1, 0)
       case _ => null
